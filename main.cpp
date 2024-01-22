@@ -1,25 +1,89 @@
-// Requirements
-// This program should be written in C or C++.
-// Your submittal should include a Makefile.
-// Your program will take 5 arguments in the order defined below. Your program should ensure there are 5 arguments, and that each argument is error-checked appropriately.
-// The first argument is either a 'B' or a 'S'.
-// B means you will use your block cipher function
-// S means you will use your stream cipher function.
-// Your program should terminate if other than a 'B' or an 'S' is entered with an appropriate error message.
-// The second argument is the input file name.
-// Your program should terminate with an appropriate error message if the file does not exist.
-// The third argument is the output file name.
-// The fourth argument is the keyfile
-// The keyfile contains the symmetric key in ASCII format ("COMPUTER76543210"). The keysize for Block Encryption Mode would be 128 bits (16 bytes) and can be of any length for Stream Encryption Mode. Your program will read in the contents of the keyfile and use it to encrypt the plaintext provided in the input file. The keyfile will not contain a terminating "\n"(newline) character.
-// The fifth argument is the 'mode of operation' which can be either 'E' for encryption or 'D' for decryption.
-// Altough the same 'E' or 'D' module can be used for Stream Ciphers, the same does not apply for Block Ciphers as will be explained below in the 'Description of the algorithms' section. In the 'E' mode you would encrypt a plaintext using a key and produce a ciphertext. We can then evaluate your encrypted output against the output produced by our own program with the same key. Similarly, in the 'D' mode your program is expected to decrypt an already encrypted text, with the same symmetric key, and produce expected plaintext results.
-// Your program will read in the input file.
-// End of line characters are data just like any other character.
-// You may assume the file is in multiples of 8 bits.
-// Your file will write the output file based on the arguments.
-// Your file should be in 128-bit blocks in block mode.
-// This means you must pad blocks that are not 128 bits in length.
-// Each padding byte should be 0X81. Because the input file will be a multiple of 8 bits or 1 byte, padding (if required) can also be done in multiples of 8 bits or 1 byte. For the purpose of this project you will be using the byte value 0X81 in hex or 129 in decimal. Becasue, the input file is in ASCII and the padding value (0X81) falls outside the ASCII (0-127) range, it allows us distinguish padding bytes from plaintext bytes.
-// Your file should be in 8-bit multiples in stream mode.
-// Your file will be read in by a program that isn't yours to test.
-// If the input file is empty, the output file should be empty.
+#include <iostream>
+#include <cstring>
+#include <fstream>
+#include<bits/stdc++.h>
+#include <cmath>
+#include "Cipher.h"
+
+//Project: Programming Assignment 1
+//Name: Matthew Mattson
+//Date: September 11, 2022
+
+using namespace std;
+
+// Driver code
+int main(int argc, const char **argv) {
+
+    //Check for the correct amount of arguments
+    if (argc != 6) {
+        printf("       ERROR:Incorrect amount of arguments\n");//TODO: REDO WITH USAGE EXAMPLE
+        exit(1);
+    }
+
+    // Take the key from argv[4];
+    const char *keyArg = NULL;
+    keyArg = argv[4];
+    auto key = keyArg;
+
+    // File to output to - This needs to come from a file (output.txt) VIA argv[3]
+    const char *outFilename = argv[3];
+
+    // Message that need to encode - This needs to come from a file (input.txt) VIA argv[2]
+    ifstream iFile;
+    string inFilename = argv[2];
+    char inputStr[1000] = " ";
+
+    //Read file and write into Array
+    iFile = ifstream(inFilename, ios_base::in);
+    if (iFile.is_open()) {
+        char c;
+        int i = 0;
+
+        //Write file to Array
+        while (iFile.get(c)) {
+            inputStr[i] = c;
+            i++;
+        }
+        //Close File
+        iFile.close();
+        inputStr[i] = '\0';
+    } else {
+        printf("       ERROR: File could not be open or does not exist!\n");
+        exit(1);
+    }
+    //Generate a Key that is sufficient size to msg
+    char *newKey = keyGen(inputStr, key);
+
+    // Selection of Block('B') or Stream('S') VIA argv[1]
+    char cipherFunction = *argv[1];
+
+    // This will come from argv[5] could be 'E' or 'D'
+    char mode = *argv[5];
+
+    //If file is open
+    if (!iFile.is_open()) {
+        // Function call to determine Block or Stream cypher function
+        switch (cipherFunction) {
+            case 'B':
+                BlockCiphered(inputStr, newKey, &mode, outFilename);
+                break;
+            case 'S':
+                StreamCiphered(inputStr, newKey, &mode, outFilename);
+                break;
+            default:
+                printf("       ERROR: Invalid cipher function - Please Enter either 'B' for Block Cipher or 'S' for Stream Cipher...\n");
+                exit(1);
+        }
+        //Else Error with message
+    } else {
+        printf("       ERROR:Input File is not Valid or Does not exist.\n");
+        exit(1);
+    }
+
+    //Delete open array
+    delete[] newKey;
+
+    //End
+    printf("\n");
+    return 0;
+}
