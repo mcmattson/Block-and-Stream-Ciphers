@@ -1,0 +1,9 @@
+// Block cipher
+// 1.	The encryption would be a three step process : pad (if required) -> encrypt (using XOR) -> swap
+// 2.	Your block size will be 128 bits. As mentioned earlier, if a block is found to be less than 128 bits, it should be padded with as many (0X81) bytes so as to make 128 bits or 16 bytes.
+// 3.	Your algorithm will XOR the 128 bit data block with the 128 bit key in a bitwise manner, i.e. each bit of the key starting from the left most bit will be XORed with each bit of a 128 bit data block, starting from the left hand side.
+// 4.	Your algorithm will then swap bytes of the XORed output using the following algorithm.
+// o	Let 'start' and 'end' be pointers which point to the start and end of the XORed output string.
+// o	For each byte of the key, starting from the left most byte or 0th byte, you calculate the following : (ASCII value of the byte or character)mod2. This would give you either 0 or 1.
+// o	If the value is 0 you do not swap anything and move to the next byte of the ciphertext by incrementing the 'start' pointer. Otherwise, you swap the byte pointed by the 'start' pointer with that pointed by the 'end' pointer. Then increment the 'start' pointer so that it points to the next higher byte and decrement the 'end' pointer so that it points to the next lower byte. If the keysize is exhausted, you restart from the first byte of the key. This process is carried on until the 'start' and the 'end' pointers collide. The swap process stops and produces the required encrypted output.
+// 5.	The decryption process is also of three steps but proceeds in the reverse order as the encryption process : swap -> decrypt (using XOR) -> remove padding (if required). The decrypted ouput should be written to the output file. Because the decryption process occurs in the reverse direction of the encryption process, you cannot use the same module to perform both, altough the underlying logic will be the same.
