@@ -35,9 +35,6 @@ using namespace std;
 void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile)
 {
     ofstream oFile;
-
-    // Arr Variables
-
     // Message Variables
     int len = strlen(msg);
 
@@ -106,15 +103,12 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
     }
     else if (*mode == 'D')
     {
-
-        int padding = (len % blockSize == 0) ? 0 : blockSize - (len % blockSize);
-        int newArrLen = len + padding;
-        char *newArr = new char[newArrLen];
-        int EArrLen = strlen(reinterpret_cast<const char *>(newArr));
-        unsigned char encryptedArr[EArrLen];
+        unsigned char encryptedArr[len];
+        memcpy(encryptedArr, msg, len);
 
         unsigned char *startPtr = encryptedArr;
-        unsigned char *endPtr = encryptedArr + EArrLen - 1;
+        unsigned char *endPtr = encryptedArr + len - 1;
+
         // Swap
         while (startPtr < endPtr)
         {
@@ -127,37 +121,30 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
                 }
                 startPtr++;
             }
+            if (startPtr < endPtr)
+            {
+                startPtr = encryptedArr;
+                endPtr = encryptedArr + len - 1;
+            }
         }
 
         // XOR
-        for (int i = 0; i < newArrLen; ++i)
+        for (int i = 0; i < len; ++i)
         {
-            newArr[i] = newArr[i] xor keyArr[i % keyLen];
+            encryptedArr[i] = encryptedArr[i] xor keyArr[i % keyLen];
         }
 
-        // Copy msg into new Block
-        memcpy(newArr, msg, len);
-
-        // Copy padded Block into Encrypted Array
-        memset(newArr + len, pad, padding);
-        printf(newArr);
-
-        // Pad
-        if (padding == blockSize)
-        {
-            padding = 0;
-        }
+        // de-Pad
+        int finalDataLen = len - (encryptedArr[len - 1] == pad ? 1 : 0);
 
         oFile.open(outFile, ofstream::out | ofstream::trunc);
         // Print Values - Print to output.txt file
-        for (int i = 0; i < EArrLen; i++)
+        for (int i = 0; i < finalDataLen; i++)
         {
             oFile << encryptedArr[i];
         }
-        oFile.close();
 
-        // delete new arr
-        delete[] newArr;
+        oFile.close();
     }
     else
     {
