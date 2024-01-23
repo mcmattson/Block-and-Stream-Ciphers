@@ -37,301 +37,131 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
     ofstream oFile;
 
     // Arr Variables
-    int EArrLen = strlen(reinterpret_cast<const char *>(msg));
-    unsigned char encryptedArr[EArrLen];
 
     // Message Variables
     int len = strlen(msg);
 
     // Key Variables
-    int keyLen = strlen(reinterpret_cast<const char *>(key));
+    int keyLen = strlen(key);
     unsigned char keyArr[keyLen + 1];
+    strcpy(reinterpret_cast<char *>(keyArr), key);
 
     // Block and padding variables
-    char pad = 0x81;
+    const char pad = 0x81;
     const int blockSize = 16;
-    int totalBlocks = (len + blockSize) / blockSize;
-    int padding = blockSize - (len % blockSize);
 
-    if (padding == blockSize)
+    if (*mode == 'E')
     {
-        padding = 0;
+        int padding = (len % blockSize == 0) ? 0 : blockSize - (len % blockSize);
+        int newArrLen = len + padding;
+        char *newArr = new char[newArrLen];
+        unsigned char encryptedArr[newArrLen];
+
+        // Pad
+        memcpy(newArr, msg, len);
+        memset(newArr + len, pad, padding);
+
+        // XOR
+        for (int i = 0; i < newArrLen; ++i)
+        {
+            newArr[i] = newArr[i] xor keyArr[i % keyLen];
+        }
+
+        // Copy msg into new Block
+        memcpy(encryptedArr, newArr, newArrLen);
+
+        unsigned char *startPtr = encryptedArr;
+        unsigned char *endPtr = encryptedArr + newArrLen - 1;
+
+        // Swap
+        while (startPtr < endPtr)
+        {
+            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
+            {
+                if (keyArr[i] % 2 != 0)
+                {
+                    swap(*startPtr, *endPtr);
+                    endPtr--;
+                }
+                startPtr++;
+            }
+            if (startPtr < endPtr)
+            {
+                startPtr = encryptedArr;
+                endPtr = encryptedArr + newArrLen - 1;
+            }
+        }
+
+        oFile.open(outFile, ofstream::out | ofstream::trunc);
+        // Print Values - Print to output.txt file
+        for (int i = 0; i < newArrLen; i++)
+        {
+            oFile << encryptedArr[i];
+        }
+
+        oFile.close();
+
+        // delete new arr
+        delete[] newArr;
     }
-
-    // new array with padding
-    int newArrLen = totalBlocks * blockSize;
-    char *newArr = new char[newArrLen];
-
-    // Copy msg into new Block
-    memcpy(newArr, msg, len);
-
-    // Copy padded Block into Encrypted Array
-    memset(newArr + len, pad, padding);
-    printf(newArr);
-
-    // pointers for 'start' and 'end' for byte swap
-    int *startPtr;
-    int *endPtr;
-
-    startPtr = reinterpret_cast<int *>(encryptedArr);
-    endPtr = reinterpret_cast<int *>(&encryptedArr[EArrLen - 1]);
-    // Select encrypt or decrypt from cmd line (does the same thing in Stream Cipher)
-    switch (*mode)
+    else if (*mode == 'D')
     {
-    case 'E':
-        // TODO: pad (if required) -> encrypt (using XOR) -> swap
-        strcpy(reinterpret_cast<char *>(keyArr), reinterpret_cast<const char *>(key));
 
-        //================== FOR DEBUGGING =====================//
-        // Print Values
-        /*cout << "\nKeyArr: ";
-        for (int i = 0; i < keyLen; i++) {
-            printf("%c", keyArr[i]);
-        }
-        cout << "\n        ";
-        for (int i = 0; i < keyLen; i++) {
-            printf("%i ", valueOfChar(keyArr[i]));
-        }
-        cout << "\n\n";
+        int padding = (len % blockSize == 0) ? 0 : blockSize - (len % blockSize);
+        int newArrLen = len + padding;
+        char *newArr = new char[newArrLen];
+        int EArrLen = strlen(reinterpret_cast<const char *>(newArr));
+        unsigned char encryptedArr[EArrLen];
 
-        //Print Values
-
-        cout << "encryptedArr: ";
-        for (int i = 0; i < len; i++) {
-            printf("%c", encryptedArr[i]);
-        }
-        cout << "\n        ";
-        for (int i = 0; i < len; i++) {
-            printf("%i ", valueOfChar(encryptedArr[i]));
-        }
-        cout << "\n\n";
-        cout << "E-Arr : ";*/
-        // ================ END DEBUGGING =================//
-
-        // ==============Encrypt driver ============//
-        // Your algorithm will XOR the 128 bit data block with the 128 bit key in a bitwise manner, i.e. each bit of
-        // the key starting from the left most bit will be XORed with each bit of a 128 bit data block, starting from
-        // the left hand side.
-        for (int i = 0; i < EArrLen; i++)
+        unsigned char *startPtr = encryptedArr;
+        unsigned char *endPtr = encryptedArr + EArrLen - 1;
+        // Swap
+        while (startPtr < endPtr)
         {
-            encryptedArr[i] = encryptedArr[i] xor keyArr[i];
-        }
-        // XOR Each char in the two arrays
-        for (int i = 0; i < EArrLen; i++)
-        {
-            // For each byte of the key, starting from the left most byte or 0th byte, you calculate the following :
-            //  (ASCII value of the byte or character)mod2. This would give you either 0 or 1.
-            if ((key[i] % 2) == 0)
+            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
             {
-                // If the value is 0 you do not swap anything
-                //  move to the next byte of the ciphertext by incrementing the 'start' pointer.
-                // cout << "Value = 0 | Moving to next point...\n";
+                if (keyArr[i] % 2 != 0)
+                {
+                    swap(*startPtr, *endPtr);
+                    endPtr--;
+                }
                 startPtr++;
-                // cout << "startPtr = " << *startPtr << ", endPtr = " << *endPtr << "\n\n";
-
-                // end once both 'start' and 'end' pointers collide --> print
-            }
-            else if (startPtr == endPtr)
-            {
-                // cout << "Pointers Collided\n";
-                exit(1);
-            }
-            else
-            {
-                // Otherwise, you swap the byte pointed by the 'start' pointer with that pointed by the 'end' pointer.
-                // cout << "Before swap, startPtr = " << startPtr << ", endPtr = " << &endPtr << endl;
-                swap(startPtr, endPtr);
-                // cout << "After swap, startPtr = " << startPtr << ", endPtr = " << &endPtr << endl;
-
-                // cout << "Recording...\n";
-                swap(endPtr, startPtr);
-                // Then increment the 'start' pointer so that it points to the next higher byte
-                // cout << "Move 'Start' pointer... \n";
-                startPtr++;
-                // cout << "'Start' pointer at:";
-                // cout << startPtr << "\n";
-
-                // decrement the 'end' pointer so that it points to the next lower byte.
-                // cout << "Move 'End' pointer... " << endl;
-                endPtr--;
-                // cout << "'End' pointer at:";
-                // cout << endPtr << "\n\n";
             }
         }
-        //} else {
-        /*cout << "\n-------------End---------------\n";
-        for (int i = 0; i < 1; i++) {
-            cout << "&encryptedArr[" << i << "] = " << &encryptedArr[i] << endl;
-        }*/
 
-        for (int i = 0; i < EArrLen; ++i)
+        // XOR
+        for (int i = 0; i < newArrLen; ++i)
         {
-            encryptedArr[i] = keyArr[i] xor encryptedArr[i];
+            newArr[i] = newArr[i] xor keyArr[i % keyLen];
         }
 
-        // Replace unprintable ASCII chars
-        for (int i = 0; i < EArrLen; ++i)
+        // Copy msg into new Block
+        memcpy(newArr, msg, len);
+
+        // Copy padded Block into Encrypted Array
+        memset(newArr + len, pad, padding);
+        printf(newArr);
+
+        // Pad
+        if (padding == blockSize)
         {
-            if (encryptedArr[i] < 32)
-            {
-                encryptedArr[i] = '\x81';
-            }
-            else if (encryptedArr[i] > 128)
-            {
-                encryptedArr[i] = '\x81';
-            }
-            else
-            {
-                encryptedArr[i] = encryptedArr[i];
-            }
+            padding = 0;
         }
-        oFile.open(outFile, fstream::in | fstream::out | fstream::trunc);
+
+        oFile.open(outFile, ofstream::out | ofstream::trunc);
         // Print Values - Print to output.txt file
         for (int i = 0; i < EArrLen; i++)
         {
             oFile << encryptedArr[i];
         }
         oFile.close();
-        // }
-        //================== FOR DEBUGGING =====================//
-        /* cout << "\n        ";
-         for (int i = 0; i < EArrLen; i++) {
-             printf("%i ", valueOfChar(encryptedArr[i]));
-         }
-         cout << "\n";*/
-        // ================ END DEBUGGING =================//
+
         // delete new arr
         delete[] newArr;
-        break;
-    case 'D':
-        // TODO: pad (if required) -> encrypt (using XOR) -> swap
-        strcpy(reinterpret_cast<char *>(keyArr), reinterpret_cast<const char *>(key));
-
-        //================== FOR DEBUGGING =====================//
-        // Print Values
-        /*cout << "\nKeyArr: ";
-        for (int i = 0; i < keyLen; i++) {
-            printf("%c", keyArr[i]);
-        }
-        cout << "\n        ";
-        for (int i = 0; i < keyLen; i++) {
-            printf("%i ", valueOfChar(keyArr[i]));
-        }
-        cout << "\n\n";
-
-        //Print Values
-
-        cout << "encryptedArr: ";
-        for (int i = 0; i < len; i++) {
-            printf("%c", encryptedArr[i]);
-        }
-        cout << "\n        ";
-        for (int i = 0; i < len; i++) {
-            printf("%i ", valueOfChar(encryptedArr[i]));
-        }
-        cout << "\n\n";
-        cout << "E-Arr : ";*/
-        // ================ END DEBUGGING =================//
-
-        // ==============Encrypt driver ============//
-        // Your algorithm will XOR the 128 bit data block with the 128 bit key in a bitwise manner, i.e. each bit of
-        // the key starting from the left most bit will be XORed with each bit of a 128 bit data block, starting from
-        // the left hand side.
-        for (int i = 0; i < EArrLen; i++)
-        {
-            encryptedArr[i] = encryptedArr[i] xor keyArr[i];
-        }
-        // XOR Each char in the two arrays
-        for (int i = 0; i < EArrLen; i++)
-        {
-            // For each byte of the key, starting from the left most byte or 0th byte, you calculate the following :
-            //  (ASCII value of the byte or character)mod2. This would give you either 0 or 1.
-            if ((key[i] % 2) == 0)
-            {
-                // If the value is 0 you do not swap anything
-                //  move to the next byte of the ciphertext by incrementing the 'start' pointer.
-                // cout << "Value = 0 | Moving to next point...\n";
-                startPtr++;
-                // cout << "startPtr = " << *startPtr << ", endPtr = " << *endPtr << "\n\n";
-
-                // end once both 'start' and 'end' pointers collide --> print
-            }
-            else if (startPtr == endPtr)
-            {
-                // cout << "Pointers Collided\n";
-                exit(1);
-            }
-            else
-            {
-                // Otherwise, you swap the byte pointed by the 'start' pointer with that pointed by the 'end' pointer.
-                // cout << "Before swap, startPtr = " << startPtr << ", endPtr = " << &endPtr << endl;
-                swap(startPtr, endPtr);
-                // cout << "After swap, startPtr = " << startPtr << ", endPtr = " << &endPtr << endl;
-
-                // cout << "Recording...\n";
-                swap(endPtr, startPtr);
-                // Then increment the 'start' pointer so that it points to the next higher byte
-                //  cout << "Move 'Start' pointer... \n";
-                startPtr++;
-                // cout << "'Start' pointer at:";
-                // cout << startPtr << "\n";
-
-                // decrement the 'end' pointer so that it points to the next lower byte.
-                // cout << "Move 'End' pointer... " << endl;
-                endPtr--;
-                // cout << "'End' pointer at:";
-                // cout << endPtr << "\n\n";
-            }
-        }
-        //} else {
-        /*cout << "\n-------------End---------------\n";
-        for (int i = 0; i < 1; i++) {
-            cout << "&encryptedArr[" << i << "] = " << &encryptedArr[i] << endl;
-        }*/
-
-        for (int i = 0; i < EArrLen; ++i)
-        {
-            encryptedArr[i] = keyArr[i] xor encryptedArr[i];
-        }
-
-        // Replace unprintable ASCII chars
-        for (int i = 0; i < EArrLen; ++i)
-        {
-            if (encryptedArr[i] < 32)
-            {
-                encryptedArr[i] = '\x81';
-            }
-            else if (encryptedArr[i] > 128)
-            {
-                encryptedArr[i] = '\x81';
-            }
-            else
-            {
-                encryptedArr[i] = encryptedArr[i];
-            }
-        }
-        oFile.open(outFile, fstream::in | fstream::out | fstream::trunc);
-        // Print Values - Print to output.txt file
-        for (int i = 0; i < EArrLen; i++)
-        {
-            oFile << encryptedArr[i];
-        }
-        oFile.close();
-        // }
-        //================== FOR DEBUGGING =====================//
-        /* cout << "\n        ";
-         for (int i = 0; i < EArrLen; i++) {
-             printf("%i ", valueOfChar(encryptedArr[i]));
-         }
-         cout << "\n";*/
-        // ================ END DEBUGGING =================//
-        // delete new arr
-        delete[] newArr;
-        break;
-    default:
+    }
+    else
+    {
         printf("       ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n");
-        // delete new arr
-        delete[] newArr;
         exit(1);
     }
 }
