@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
-#include <bits/stdc++.h>
 #include <cmath>
 #include "Cipher.h"
 
@@ -49,7 +48,7 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
 
     if (*mode == 'E')
     {
-        int padding = (len % blockSize == 0) ? 0 : blockSize - (len % blockSize);
+        int padding = blockSize - (len % blockSize);
         int newArrLen = len + padding;
         char *newArr = new char[newArrLen];
         unsigned char encryptedArr[newArrLen];
@@ -73,29 +72,21 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         // Swap
         while (startPtr < endPtr)
         {
-            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
+            for (int i = 0; i < keyLen; ++i)
             {
-                if (keyArr[i] % 2 != 0)
+                if (keyArr[i] % 2 != 0 && startPtr < endPtr)
                 {
                     swap(*startPtr, *endPtr);
+
                     endPtr--;
                 }
                 startPtr++;
             }
-            if (startPtr < endPtr)
-            {
-                startPtr = encryptedArr;
-                endPtr = encryptedArr + newArrLen - 1;
-            }
         }
 
-        oFile.open(outFile, ofstream::out | ofstream::trunc);
-        // Print Values - Print to output.txt file
-        for (int i = 0; i < newArrLen; i++)
-        {
-            oFile << encryptedArr[i];
-        }
-
+        // Write to output
+        oFile.open(outFile, ofstream::out | ofstream::trunc | ofstream::binary);
+        oFile.write(reinterpret_cast<const char *>(encryptedArr), newArrLen);
         oFile.close();
 
         // delete new arr
@@ -112,21 +103,23 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         // Swap
         while (startPtr < endPtr)
         {
-            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
+            for (int i = 0; i < keyLen; ++i)
             {
-                if (keyArr[i] % 2 != 0)
+                if (keyArr[i] % 2 != 0 && startPtr < endPtr)
                 {
                     swap(*startPtr, *endPtr);
+
                     endPtr--;
                 }
                 startPtr++;
             }
-            if (startPtr < endPtr)
-            {
-                startPtr = encryptedArr;
-                endPtr = encryptedArr + len - 1;
-            }
         }
+
+        // Debugging: Print after swap
+        cout << "After Swap: ";
+        for (int i = 0; i < len; i++)
+            cout << encryptedArr[i];
+        cout << endl;
 
         // XOR
         for (int i = 0; i < len; ++i)
@@ -134,16 +127,22 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
             encryptedArr[i] = encryptedArr[i] xor keyArr[i % keyLen];
         }
 
-        // de-Pad
-        int finalDataLen = len - (encryptedArr[len - 1] == pad ? 1 : 0);
+        // Debugging: Print after XOR
+        cout << "After XOR: ";
+        for (int i = 0; i < len; i++)
+            cout << encryptedArr[i];
+        cout << endl;
 
-        oFile.open(outFile, ofstream::out | ofstream::trunc);
-        // Print Values - Print to output.txt file
-        for (int i = 0; i < finalDataLen; i++)
+        // de-Pad
+        int finalDataLen = len;
+        for (int i = len; i > 0 && encryptedArr[i - 1] == pad; --i)
         {
-            oFile << encryptedArr[i];
+            finalDataLen--;
         }
 
+        // Write to output
+        oFile.open(outFile, ofstream::out | ofstream::trunc | ofstream::binary);
+        oFile.write(reinterpret_cast<const char *>(encryptedArr), finalDataLen);
         oFile.close();
     }
     else
