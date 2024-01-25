@@ -11,11 +11,11 @@ int valueOfChar(unsigned char c)
     return i;
 }
 
-void swap(int *a, int *b)
+void swapBytes(unsigned char &a, unsigned char &b)
 {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
+    int temp = a;
+    a = b;
+    b = temp;
 }
 
 // Generates Key the length needed for input str

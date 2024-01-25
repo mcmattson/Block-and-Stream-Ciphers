@@ -60,7 +60,7 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         // XOR
         for (int i = 0; i < newArrLen; ++i)
         {
-            newArr[i] = newArr[i] xor keyArr[i % keyLen];
+            newArr[i] = newArr[i] ^ keyArr[i % keyLen];
         }
 
         // Copy msg into new Block
@@ -76,7 +76,7 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
             {
                 if (keyArr[i] % 2 != 0 && startPtr < endPtr)
                 {
-                    swap(*startPtr, *endPtr);
+                    swapBytes(*startPtr, *endPtr);
 
                     endPtr--;
                 }
@@ -105,9 +105,10 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         {
             for (int i = 0; i < keyLen; ++i)
             {
-                if (keyArr[i] % 2 != 0 && startPtr < endPtr)
+                if (keyArr[i] % 2 != 0)
                 {
-                    swap(*startPtr, *endPtr);
+                    swapBytes(*startPtr, *endPtr);
+                    cout << keyArr[i];
 
                     endPtr--;
                 }
@@ -115,23 +116,11 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
             }
         }
 
-        // Debugging: Print after swap
-        cout << "After Swap: ";
-        for (int i = 0; i < len; i++)
-            cout << encryptedArr[i];
-        cout << endl;
-
         // XOR
         for (int i = 0; i < len; ++i)
         {
-            encryptedArr[i] = encryptedArr[i] xor keyArr[i % keyLen];
+            encryptedArr[i] = encryptedArr[i] ^ keyArr[i % keyLen];
         }
-
-        // Debugging: Print after XOR
-        cout << "After XOR: ";
-        for (int i = 0; i < len; i++)
-            cout << encryptedArr[i];
-        cout << endl;
 
         // de-Pad
         int finalDataLen = len;
