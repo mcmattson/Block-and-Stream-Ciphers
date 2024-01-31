@@ -60,7 +60,7 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         // XOR
         for (int i = 0; i < newArrLen; ++i)
         {
-            newArr[i] = newArr[i] ^ keyArr[i % keyLen];
+            newArr[i] ^= keyArr[i % keyLen];
         }
 
         // Copy msg into new Block
@@ -74,10 +74,9 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         {
             for (int i = 0; i < keyLen; ++i)
             {
-                if (keyArr[i] % 2 != 0 && startPtr < endPtr)
+                if (keyArr[i] % 2 != 0)
                 {
                     swapBytes(*startPtr, *endPtr);
-
                     endPtr--;
                 }
                 startPtr++;
@@ -97,10 +96,9 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         unsigned char encryptedArr[len];
         memcpy(encryptedArr, msg, len);
 
+        // Swap
         unsigned char *startPtr = encryptedArr;
         unsigned char *endPtr = encryptedArr + len - 1;
-
-        // Swap
         while (startPtr < endPtr)
         {
             for (int i = 0; i < keyLen; ++i)
@@ -108,8 +106,6 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
                 if (keyArr[i] % 2 != 0)
                 {
                     swapBytes(*startPtr, *endPtr);
-                    cout << keyArr[i];
-
                     endPtr--;
                 }
                 startPtr++;
@@ -119,19 +115,12 @@ void BlockCiphered(char msg[], char key[], const char *mode, const char *outFile
         // XOR
         for (int i = 0; i < len; ++i)
         {
-            encryptedArr[i] = encryptedArr[i] ^ keyArr[i % keyLen];
+            encryptedArr[i] ^= keyArr[i % keyLen];
         }
+        // Removed Padding
 
-        // de-Pad
-        int finalDataLen = len;
-        for (int i = len; i > 0 && encryptedArr[i - 1] == pad; --i)
-        {
-            finalDataLen--;
-        }
-
-        // Write to output
         oFile.open(outFile, ofstream::out | ofstream::trunc | ofstream::binary);
-        oFile.write(reinterpret_cast<const char *>(encryptedArr), finalDataLen);
+        oFile.write(reinterpret_cast<const char *>(encryptedArr), len);
         oFile.close();
     }
     else

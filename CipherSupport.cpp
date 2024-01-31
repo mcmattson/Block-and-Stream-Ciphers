@@ -13,7 +13,7 @@ int valueOfChar(unsigned char c)
 
 void swapBytes(unsigned char &a, unsigned char &b)
 {
-    int temp = a;
+    unsigned char temp = a;
     a = b;
     b = temp;
 }
