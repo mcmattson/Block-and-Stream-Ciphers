@@ -46,10 +46,10 @@ void StreamCiphered(char msg[], char key[], const char *mode, const char *outFil
     {
         strcpy(reinterpret_cast<char *>(keyArr), reinterpret_cast<const char *>(key));
         strcpy(reinterpret_cast<char *>(chArr), static_cast<const char *>(msg));
-        
+
         for (int i = 0; i < EArrLen; ++i)
         {
-            encryptedArr[i] = keyArr[i % keyLen] xor chArr[i];
+            encryptedArr[i] = keyArr[i % keyLen] ^ chArr[i];
         }
 
         oFile.open(outFile, std::ofstream::out | std::ofstream::trunc);
@@ -59,7 +59,6 @@ void StreamCiphered(char msg[], char key[], const char *mode, const char *outFil
             oFile << encryptedArr[i];
         }
         oFile.close();
-
     }
     else
     {
