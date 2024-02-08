@@ -5,13 +5,15 @@
 #include <algorithm>
 #include <vector>
 
-void xorOperation(std::vector<unsigned char> &data, const std::string &key)
+void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key)
 {
-    std::transform(data.begin(), data.end(), data.begin(), [&, i = 0](unsigned char c) mutable -> unsigned char
-                   { return c ^ key[i++ % key.length()]; });
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        data[i] ^= key[i % key.size()];
+    }
 }
 
-void padInput(const char *msg, int len, const std::string &key, std::vector<unsigned char> &newArr)
+void padInput(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr)
 {
     const unsigned char pad = 0x81;
     const int blockSize = 16;
@@ -26,17 +28,19 @@ void padInput(const char *msg, int len, const std::string &key, std::vector<unsi
     std::fill_n(newArr.begin() + len, newArrLen - len, pad);
 }
 
-void swapOperation(std::vector<unsigned char> &arr, const std::string &key)
+void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key)
 {
-    int len = arr.size();
-    int keyLen = key.length();
-
-    for (int start = 0, end = len - 1; start < end; ++start)
+    int start = 0, end = data.size() - 1;
+    size_t keyIndex = 0;
+    while (start < end)
     {
-        if (key[start % keyLen] % 2 != 0)
+        if ((key[keyIndex] % 2) == 1)
         {
-            std::swap(arr[start], arr[end--]);
+            std::swap(data[start], data[end]);
+            --end;
         }
+        ++start;
+        keyIndex = (keyIndex + 1) % key.size();
     }
 }
 
@@ -52,20 +56,20 @@ void writeFile(const char *outFile, const std::vector<unsigned char> &data)
     oFile.close();
 }
 
-void encrypt(const char *msg, const std::string &key, const char *outFile)
+void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
 {
-    int len = strlen(msg);
-    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(msg), reinterpret_cast<const unsigned char *>(msg) + len);
-    padInput(msg, len, key, newArr);
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
+    padInput(data, len, key, newArr);
     xorOperation(newArr, key);
     swapOperation(newArr, key);
     writeFile(outFile, newArr);
 }
 
-void decrypt(const char *msg, const std::string &key, const char *outFile)
+void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
 {
-    int len = strlen(msg);
-    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(msg), reinterpret_cast<const unsigned char *>(msg) + len);
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
     swapOperation(newArr, key);
     xorOperation(newArr, key);
 
@@ -74,19 +78,19 @@ void decrypt(const char *msg, const std::string &key, const char *outFile)
     {
         newArr.pop_back();
     }
-
+    
     writeFile(outFile, newArr);
 }
 
-void BlockCiphered(const char *msg, const std::string &key, const char *mode, const char *outFile)
+void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile)
 {
     if (*mode == 'E')
     {
-        encrypt(msg, key, outFile);
+        encrypt(data, key, outFile);
     }
     else if (*mode == 'D')
     {
-        decrypt(msg, key, outFile);
+        decrypt(data, key, outFile);
     }
     else
     {
@@ -95,17 +99,17 @@ void BlockCiphered(const char *msg, const std::string &key, const char *mode, co
     }
 }
 
-void StreamCiphered(const char *msg, const std::string &key, const char *mode, const char *outFilename)
+void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename)
 {
     // Encryption and Decryption are the same for XOR-based stream cipher
     if (*mode == 'E' || *mode == 'D')
     {
-        size_t inputLen = strlen(msg);
+        size_t inputLen = strlen(data);
         std::ofstream outputFile(outFilename, std::ios::binary);
 
         for (size_t i = 0; i < inputLen; ++i)
         {
-            char cipherByte = msg[i] ^ key[i % key.length()];
+            char cipherByte = data[i] ^ key[i % key.size()];
             outputFile.put(cipherByte);
         }
 
@@ -150,7 +154,12 @@ int main(int argc, const char **argv)
     }
 
     keyFile.seekg(0, std::ios::beg);
-    std::string key((std::istreambuf_iterator<char>(keyFile)), std::istreambuf_iterator<char>());
+    std::vector<unsigned char> key(keySize);
+    if (!keyFile.read(reinterpret_cast<char *>(key.data()), keySize))
+    {
+        std::cerr << "      ERROR: Failed to read key file.\n";
+        return 1;
+    }
     keyFile.close();
 
     // Check Inputfile
