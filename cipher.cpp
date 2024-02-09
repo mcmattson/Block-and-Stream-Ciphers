@@ -8,121 +8,15 @@
 const unsigned char PADDING_BYTE = 0x81;
 const int BLOCK_SIZE = 16;
 
-void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key)
-{
-    for (size_t i = 0; i < data.size(); ++i)
-    {
-        data[i] ^= key[i % key.size()];
-    }
-}
-
-void addPadding(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr)
-{
-
-    int padding = BLOCK_SIZE - (len % BLOCK_SIZE);
-    int newArrLen = len + (padding ? padding : BLOCK_SIZE);
-    newArr.resize(newArrLen);
-
-    std::copy(msg, msg + len, newArr.begin());
-    std::fill_n(newArr.begin() + len, newArrLen - len, PADDING_BYTE);
-}
-
-void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key)
-{
-    int start = 0, end = data.size() - 1;
-    size_t keyIndex = 0;
-    while (start < end)
-    {
-        if ((key[keyIndex] % 2) == 1)
-        {
-            std::swap(data[start], data[end]);
-            --end;
-        }
-        ++start;
-        keyIndex = (keyIndex + 1) % key.size();
-    }
-}
-
-void removePadding(std::vector<unsigned char> &data)
-{
-    while (!data.empty() && data.back() == PADDING_BYTE)
-    {
-        data.pop_back();
-    }
-}
-
-void writeFile(const char *outFile, const std::vector<unsigned char> &data)
-{
-    std::ofstream oFile(outFile, std::ios::out | std::ios::binary);
-    if (!oFile)
-    {
-        std::cerr << "  Failed to open output file." << std::endl;
-        return;
-    }
-    oFile.write(reinterpret_cast<const char *>(data.data()), data.size());
-    oFile.close();
-}
-
-void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
-{
-    int len = strlen(data);
-    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
-    addPadding(data, len, key, newArr);
-    xorOperation(newArr, key);
-    swapOperation(newArr, key);
-    writeFile(outFile, newArr);
-}
-
-
-void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
-{
-    int len = strlen(data);
-    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
-    swapOperation(newArr, key);
-    xorOperation(newArr, key);
-    removePadding(newArr);
-    writeFile(outFile, newArr);
-}
-
-void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile)
-{
-    if (*mode == 'E')
-    {
-        encrypt(data, key, outFile);
-    }
-    else if (*mode == 'D')
-    {
-        decrypt(data, key, outFile);
-    }
-    else
-    {
-        std::cerr << "    ERROR: Invalid Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
-        exit(1);
-    }
-}
-
-void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename)
-{
-    // Encryption and Decryption are the same for XOR-based stream cipher
-    if (*mode == 'E' || *mode == 'D')
-    {
-        size_t inputLen = strlen(data);
-        std::ofstream outputFile(outFilename, std::ios::binary);
-
-        for (size_t i = 0; i < inputLen; ++i)
-        {
-            char cipherByte = data[i] ^ key[i % key.size()];
-            outputFile.put(cipherByte);
-        }
-
-        outputFile.close();
-    }
-    else
-    {
-        std::cerr << "    ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
-        exit(1);
-    }
-}
+void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key);
+void addPadding(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr);
+void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key);
+void removePadding(std::vector<unsigned char> &data);
+void writeFile(const char *outFile, const std::vector<unsigned char> &data);
+void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile);
+void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile);
+void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile);
+void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename);
 
 int main(int argc, const char **argv)
 {
@@ -216,5 +110,121 @@ int main(int argc, const char **argv)
         std::cerr << "       ERROR: Invalid cipher function - Please Enter either 'B' for Block Cipher or 'S' for Stream Cipher.\n";
         return 1;
     }
+    std::cout << std::endl;
     return 0;
+}
+
+void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key)
+{
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        data[i] ^= key[i % key.size()];
+    }
+}
+
+void addPadding(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr)
+{
+
+    int padding = BLOCK_SIZE - (len % BLOCK_SIZE);
+    int newArrLen = len + (padding ? padding : BLOCK_SIZE);
+    newArr.resize(newArrLen);
+
+    std::copy(msg, msg + len, newArr.begin());
+    std::fill_n(newArr.begin() + len, newArrLen - len, PADDING_BYTE);
+}
+
+void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key)
+{
+    int start = 0, end = data.size() - 1;
+    size_t keyIndex = 0;
+    while (start < end)
+    {
+        if ((key[keyIndex] % 2) == 1)
+        {
+            std::swap(data[start], data[end]);
+            --end;
+        }
+        ++start;
+        keyIndex = (keyIndex + 1) % key.size();
+    }
+}
+
+void removePadding(std::vector<unsigned char> &data)
+{
+    while (!data.empty() && data.back() == PADDING_BYTE)
+    {
+        data.pop_back();
+    }
+}
+
+void writeFile(const char *outFile, const std::vector<unsigned char> &data)
+{
+    std::ofstream oFile(outFile, std::ios::out | std::ios::binary);
+    if (!oFile)
+    {
+        std::cerr << "  Failed to open output file." << std::endl;
+        return;
+    }
+    oFile.write(reinterpret_cast<const char *>(data.data()), data.size());
+    oFile.close();
+}
+
+void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
+{
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
+    addPadding(data, len, key, newArr);
+    xorOperation(newArr, key);
+    swapOperation(newArr, key);
+    writeFile(outFile, newArr);
+}
+
+void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
+{
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
+    swapOperation(newArr, key);
+    xorOperation(newArr, key);
+    removePadding(newArr);
+    writeFile(outFile, newArr);
+}
+
+void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile)
+{
+    if (*mode == 'E')
+    {
+        encrypt(data, key, outFile);
+    }
+    else if (*mode == 'D')
+    {
+        decrypt(data, key, outFile);
+    }
+    else
+    {
+        std::cerr << "    ERROR: Invalid Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
+        exit(1);
+    }
+}
+
+void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename)
+{
+    // Encryption and Decryption are the same for XOR-based stream cipher
+    if (*mode == 'E' || *mode == 'D')
+    {
+        size_t inputLen = strlen(data);
+        std::ofstream outputFile(outFilename, std::ios::binary);
+
+        for (size_t i = 0; i < inputLen; ++i)
+        {
+            char cipherByte = data[i] ^ key[i % key.size()];
+            outputFile.put(cipherByte);
+        }
+
+        outputFile.close();
+    }
+    else
+    {
+        std::cerr << "    ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
+        exit(1);
+    }
 }
