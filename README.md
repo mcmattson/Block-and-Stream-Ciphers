@@ -26,7 +26,7 @@ Encryption involves padding (if necessary), encrypting with XOR, and byte-swappi
 The input stream is XORed with a key, "COMPUTER76543210", bit by bit. Upon reaching the key's end, it starts over. This method applies to both encryption and decryption without the need for separate modules.
 
 # Installation
-To install, unpack the package into the intended directory. Build the program in a LINUX terminal within that directory by typing "make". This prepares the program for execution according to the provided requirements.
+To install, unpack the PA1.tar.gz package into the intended directory. Build the program in a LINUX terminal within that directory by typing "make". This prepares the program for execution according to the provided requirements.
 
 # Configuration
 No further configuration is needed after installation.
