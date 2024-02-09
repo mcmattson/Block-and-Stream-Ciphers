@@ -1,171 +1,222 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <cstring>
-using namespace std;
+#include <string>
+#include <algorithm>
+#include <vector>
 
-void swapBytes(unsigned char &a, unsigned char &b)
-{
-    unsigned char temp = a;
-    a = b;
-    b = temp;
-}
+const unsigned char PADDING_BYTE = 0x81;
+const int BLOCK_SIZE = 16;
 
-char *keyGen(const char *msg, const char *key)
-{
-    size_t keyLength = strlen(key);
-    char *newKey = new char[keyLength + 1];
-    strcpy(newKey, key);
-    return newKey;
-}
+void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key);
+void addPadding(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr);
+void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key);
+void removePadding(std::vector<unsigned char> &data);
+void writeFile(const char *outFile, const std::vector<unsigned char> &data);
+void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile);
+void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile);
+void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile);
+void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename);
 
-void BlockCiphered(const char *msg, char *key, const char *mode, const char *outFile)
+int main(int argc, const char **argv)
 {
-    int keyLen = strlen(key);
-    unsigned char keyArr[keyLen + 1];
-    // Assuming key is of correct length (16 bytes for 128 bits) and mode is 'E' for encryption
-    if (*mode == 'E')
+    // Check for the correct amount of arguments
+    if (argc != 6)
     {
-        ofstream oFile;
-
-        // Message Variables
-        int len = strlen(msg);
-
-        // Key Variables
-        strcpy(reinterpret_cast<char *>(keyArr), key);
-
-        // Block and padding variables
-        const char pad = 0x81;
-        const int blockSize = 16;
-
-        int padding = blockSize - (len % blockSize);
-        int newArrLen = len + (padding ? padding : blockSize); // Ensure padding for alignment
-        unsigned char *newArr = new unsigned char[newArrLen];
-
-        // Pad and XOR
-        memcpy(newArr, msg, len);
-        memset(newArr + len, pad, newArrLen - len); // Apply padding
-
-        for (int i = 0; i < newArrLen; ++i)
-        {
-            newArr[i] ^= keyArr[i % keyLen]; // XOR operation
-        }
-
-        unsigned char *startPtr = newArr;
-        unsigned char *endPtr = newArr + newArrLen - 1;
-
-        // Swap
-        while (startPtr < endPtr)
-        {
-            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
-            {
-                if (keyArr[i] % 2 != 0)
-                {
-                    swapBytes(*startPtr, *endPtr);
-                    endPtr--;
-                }
-                startPtr++;
-            }
-        }
-
-        // Write to output
-        oFile.open(outFile, ios::out | ios::binary);
-        if (!oFile)
-        {
-            cerr << "Failed to open output file." << endl;
-            delete[] newArr;
-            return;
-        }
-        oFile.write(reinterpret_cast<char *>(newArr), newArrLen);
-        oFile.close();
-
-        delete[] newArr; // Cleanup
+        std::cerr << "ERROR: Incorrect number of arguments.\n"
+                  << "Usage: <program_name> <cipher type> <input filename> <output filename> <keyfile> <mode>\n"
+                  << "  <cipher type> - 'B' for Block Cipher or 'S' for Stream Cipher\n"
+                  << "  <input> - Input filename\n"
+                  << "  <output> - Desired Output filename\n"
+                  << "  <keyfile> - Encryption/Decryption key filename\n"
+                  << "  <mode> - 'E' for Encrypt or 'D' for Decrypt\n"
+                  << "Example: cipher B input.txt output.txt keyfile.txt E\n";
+        return 1;
     }
 
-    // Decryption
-    else if (*mode == 'D')
+    // Check KeyFile
+    std::ifstream keyFile(argv[4], std::ios::ate);
+    if (!keyFile.is_open())
     {
-        // Assuming msg contains the encrypted data
-        int len = strlen(msg);
-        unsigned char *encryptedArr = new unsigned char[len + 1];
-        memcpy(encryptedArr, msg, len);
-        encryptedArr[len] = '\0'; // Ensure null-termination for string operations
-
-        // Key Variables
-        int keyLen = strlen(key);
-        unsigned char keyArr[keyLen + 1];
-        strcpy(reinterpret_cast<char *>(keyArr), key);
-
-        // Reverse the process of encryption
-        // First, reverse swap using the same key
-        unsigned char *startPtr = encryptedArr;
-        unsigned char *endPtr = encryptedArr + len - 1;
-
-        // The swapping logic should mirror the encryption's logic, adjusted for decryption
-        while (startPtr < endPtr)
-        {
-            for (int i = 0; i < keyLen && startPtr < endPtr; ++i)
-            {
-                if (keyArr[i] % 2 != 0)
-                {
-                    swapBytes(*startPtr, *endPtr);
-                    endPtr--;
-                }
-                startPtr++;
-            }
-            // Reset pointers if they have not met
-            if (startPtr < endPtr)
-            {
-                startPtr = encryptedArr;
-                endPtr = encryptedArr + len - 1;
-            }
-        }
-
-        // XOR to decrypt
-        for (int i = 0; i < len; ++i)
-        {
-            encryptedArr[i] ^= keyArr[i % keyLen];
-        }
-
-        // Remove padding
-        int realLen = len;
-        while (realLen > 0 && encryptedArr[realLen - 1] == static_cast<unsigned char>(0x81))
-        {
-            realLen--;
-        }
-
-        // Output decrypted data
-        ofstream oFile(outFile, ios::out | ios::trunc | ios::binary);
-        if (!oFile)
-        {
-            cerr << "Failed to open output file for writing decrypted content." << endl;
-            delete[] encryptedArr;
-            return;
-        }
-        oFile.write(reinterpret_cast<char *>(encryptedArr), realLen);
-        oFile.close();
-
-        delete[] encryptedArr; // Cleanup
+        std::cerr << "      ERROR: Key File is not Valid or Does not exist.\n";
+        return 1;
     }
 
+    std::streamsize keySize = keyFile.tellg();
+    if (keySize == 0)
+    {
+        std::cout << "      ERROR: Key File is empty. Exiting...\n";
+        return 1;
+    }
+
+    keyFile.seekg(0, std::ios::beg);
+    std::vector<unsigned char> key(keySize);
+    if (!keyFile.read(reinterpret_cast<char *>(key.data()), keySize))
+    {
+        std::cerr << "      ERROR: Failed to read key file.\n";
+        return 1;
+    }
+    keyFile.close();
+
+    // Check Inputfile
+    std::ifstream iFile(argv[2], std::ios::binary | std::ios::ate);
+    if (!iFile.is_open())
+    {
+        std::cerr << "       ERROR: Input Filename is not Valid or Does not exist.\n";
+        return 1;
+    }
+
+    // Calculate file size and allocate memory
+    std::streamsize size = iFile.tellg();
+
+    // Check OutputFile
+    if (size == 0)
+    {
+        std::ofstream oFile(argv[3], std::ios::trunc | std::ios::binary);
+        if (!oFile.is_open())
+        {
+            return 1;
+        }
+        oFile.close();
+        return 0;
+    }
+
+    std::vector<char> msgBuffer(size);
+    iFile.seekg(0, std::ios::beg);
+
+    // Read file content
+    if (!iFile.read(msgBuffer.data(), size))
+    {
+        std::cerr << "       ERROR: Failed to read file.\n";
+        return 1;
+    }
+    iFile.close();
+
+    std::string msg(msgBuffer.begin(), msgBuffer.end());
+    char cipherFunction = *argv[1];
+    char mode = *argv[5];
+
+    // Process encryption/decryption
+    if (cipherFunction == 'B')
+    {
+        BlockCiphered(msg.c_str(), key, &mode, argv[3]);
+    }
+    else if (cipherFunction == 'S')
+    {
+        StreamCiphered(msg.c_str(), key, &mode, argv[3]);
+    }
     else
     {
-        printf("       ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n");
+        std::cerr << "       ERROR: Invalid cipher function - Please Enter either 'B' for Block Cipher or 'S' for Stream Cipher.\n";
+        return 1;
+    }
+    std::cout << std::endl;
+    return 0;
+}
+
+void xorOperation(std::vector<unsigned char> &data, const std::vector<unsigned char> &key)
+{
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        data[i] ^= key[i % key.size()];
+    }
+}
+
+void addPadding(const char *msg, int len, std::vector<unsigned char> &key, std::vector<unsigned char> &newArr)
+{
+
+    int padding = BLOCK_SIZE - (len % BLOCK_SIZE);
+    int newArrLen = len + (padding ? padding : BLOCK_SIZE);
+    newArr.resize(newArrLen);
+
+    std::copy(msg, msg + len, newArr.begin());
+    std::fill_n(newArr.begin() + len, newArrLen - len, PADDING_BYTE);
+}
+
+void swapOperation(std::vector<unsigned char> &data, std::vector<unsigned char> &key)
+{
+    int start = 0, end = data.size() - 1;
+    size_t keyIndex = 0;
+    while (start < end)
+    {
+        if ((key[keyIndex] % 2) == 1)
+        {
+            std::swap(data[start], data[end]);
+            --end;
+        }
+        ++start;
+        keyIndex = (keyIndex + 1) % key.size();
+    }
+}
+
+void removePadding(std::vector<unsigned char> &data)
+{
+    while (!data.empty() && data.back() == PADDING_BYTE)
+    {
+        data.pop_back();
+    }
+}
+
+void writeFile(const char *outFile, const std::vector<unsigned char> &data)
+{
+    std::ofstream oFile(outFile, std::ios::out | std::ios::binary);
+    if (!oFile)
+    {
+        std::cerr << "  Failed to open output file." << std::endl;
+        return;
+    }
+    oFile.write(reinterpret_cast<const char *>(data.data()), data.size());
+    oFile.close();
+}
+
+void encrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
+{
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
+    addPadding(data, len, key, newArr);
+    xorOperation(newArr, key);
+    swapOperation(newArr, key);
+    writeFile(outFile, newArr);
+}
+
+void decrypt(const char *data, std::vector<unsigned char> &key, const char *outFile)
+{
+    int len = strlen(data);
+    std::vector<unsigned char> newArr(reinterpret_cast<const unsigned char *>(data), reinterpret_cast<const unsigned char *>(data) + len);
+    swapOperation(newArr, key);
+    xorOperation(newArr, key);
+    removePadding(newArr);
+    writeFile(outFile, newArr);
+}
+
+void BlockCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFile)
+{
+    if (*mode == 'E')
+    {
+        encrypt(data, key, outFile);
+    }
+    else if (*mode == 'D')
+    {
+        decrypt(data, key, outFile);
+    }
+    else
+    {
+        std::cerr << "    ERROR: Invalid Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
         exit(1);
     }
 }
 
-void StreamCiphered(const char *msg, char *key, const char *mode, const char *outFilename)
+void StreamCiphered(const char *data, std::vector<unsigned char> &key, const char *mode, const char *outFilename)
 {
+    // Encryption and Decryption are the same for XOR-based stream cipher
     if (*mode == 'E' || *mode == 'D')
     {
-        size_t inputLen = strlen(msg);
-        ofstream outputFile(outFilename, ios::binary);
+        size_t inputLen = strlen(data);
+        std::ofstream outputFile(outFilename, std::ios::binary);
 
-        // Encryption and Decryption are the same for XOR-based stream cipher
         for (size_t i = 0; i < inputLen; ++i)
         {
-            char cipherByte = msg[i] ^ key[i % strlen(key)];
+            char cipherByte = data[i] ^ key[i % key.size()];
             outputFile.put(cipherByte);
         }
 
@@ -173,76 +224,7 @@ void StreamCiphered(const char *msg, char *key, const char *mode, const char *ou
     }
     else
     {
-        printf("       ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n");
+        std::cerr << "    ERROR: Invaild Mode - Please Enter either 'E' for encryption or 'D' for decryption...\n";
         exit(1);
     }
-}
-
-int main(int argc, const char **argv)
-{
-    // Check for the correct amount of arguments
-    if (argc != 6)
-    {
-        cout << "ERROR: Incorrect number of arguments.\n"
-             << "Usage: <program_name> <cipher type> <input filename> <output filename> <key> <mode>\n"
-             << "  <cipher type> - 'B' for Block Cipher or 'S' for Stream Cipher\n"
-             << "  <input filename> - Path to the input file\n"
-             << "  <output filename> - Path for the output file\n"
-             << "  <key> - Encryption/Decryption key\n"
-             << "  <mode> - 'E' for Encrypt or 'D' for Decrypt\n"
-             << "Example: main B input.txt output.txt COMPUTER76543210 E\n";
-        return 1;
-    }
-
-    ifstream iFile(argv[2], ios::binary | ios::ate);
-    if (!iFile.is_open())
-    {
-        cout << "       ERROR: Input File is not Valid or Does not exist.\n";
-        return 1;
-    }
-
-    // Calculate file size and allocate memory
-    streamsize size = iFile.tellg();
-    iFile.seekg(0, ios::beg);
-    char *msg = new char[size + 1];
-
-    // Read file content
-    if (!iFile.read(msg, size))
-    {
-        cout << "       ERROR: Failed to read file.\n";
-        delete[] msg;
-        return 1;
-    }
-    msg[size] = '\0'; // Null-terminate the string
-    iFile.close();
-
-    // Generate a key of sufficient size
-    char *newKey = keyGen(msg, argv[4]);
-
-    // Selection of cipher type and mode
-    char cipherFunction = *argv[1];
-    char mode = *argv[5];
-
-    // Process encryption/decryption
-    if (cipherFunction == 'B')
-    {
-        BlockCiphered(msg, newKey, &mode, argv[3]);
-    }
-    else if (cipherFunction == 'S')
-    {
-        StreamCiphered(msg, newKey, &mode, argv[3]);
-    }
-    else
-    {
-        cout << "       ERROR: Invalid cipher function - Please Enter either 'B' for Block Cipher or 'S' for Stream Cipher.\n";
-        delete[] msg;
-        delete[] newKey;
-        return 1;
-    }
-
-    // Cleanup
-    delete[] msg;
-    delete[] newKey;
-
-    return 0;
 }

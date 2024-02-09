@@ -2,7 +2,7 @@
 CXX=g++
 
 # Compiler flags
-CXXFLAGS=-Wall -std=c++11
+CXXFLAGS=-Wall -std=c++17
 
 # Define the source file and the output file
 SRC=cipher.cpp
