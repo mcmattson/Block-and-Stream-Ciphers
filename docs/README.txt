@@ -1,33 +1,32 @@
 ================ Programming Assignment 1 ===============
-This assignment introduces students to the concepts of block ciphers and stream ciphers. Block 
-ciphers encrypt data in fixed-size blocks of n bits, while stream ciphers encrypt data one bit 
-at a time. The program reads an input file, applies the described algorithms, and outputs a file.
+This project aims to introduce the concepts of block ciphers and stream ciphers. Block ciphers encrypt 
+data in fixed-size blocks of n bits, while stream ciphers encrypt data one bit at a time. The program 
+reads an input file, applies specified algorithms, and produces an output file.
 
 ==================== Requirements ========================
-The program requires five arguments in the specified order and performs appropriate error checks
-for each.
+The program requires five arguments in the specified order, with validation checks for each argument 
+to ensure correctness.
 
-The first argument determines the cipher type: 'B' for a block cipher or 'S' for a stream cipher. 
-The program ends with an error message if any value other than 'B' or 'S' is entered.
+The first argument specifies the cipher type: 'B' for block cipher or 'S' for stream cipher. The 
+program terminates with an error message if any other value is provided.
 
-The second argument is the input file name. The program terminates with an error if the file is 
-not found.
+The second argument is the name of the input file. The program exits with an error if the file cannot 
+be found.
 
-The third argument is the output file name.
+The third argument is the name of the output file. If not found, program will create a new file.
 
-The fourth argument is the keyfile, which contains the symmetric key in ASCII ("COMPUTER76543210"). 
-For Block Encryption Mode, the key size is 128 bits (16 bytes). Any length is acceptable for Stream 
-Encryption Mode. The program reads the keyfile and encrypts the input file's plaintext. The keyfile 
-does not include a newline character at the end.
+The fourth argument is the keyfile, containing the symmetric key in ASCII format (e.g., "COMPUTER76543210"). 
+For Block Encryption Mode, the key size is 128 bits (16 bytes), while any length is acceptable for Stream 
+Encryption Mode. The program uses this key for encryption, assuming no newline character at the end of the 
+key. The program exits with an error if the file cannot be found.
 
-The fifth argument is the operation mode, 'E' for encryption or 'D' for decryption. While the same 
-module can be used for stream ciphers in both modes, block ciphers require different treatments as 
-detailed in the algorithm descriptions.
+The fifth argument indicates the mode of operation: 'E' for encryption or 'D' for decryption. Different 
+modules may be needed for each mode, especially for block ciphers, as described in the algorithms section.
 
-The program processes the input file as data, including end-of-line characters, and assumes the file 
-is in multiples of 8 bits. The output file is generated based on the arguments. For block mode, the 
-output should be in 128-bit blocks, padding incomplete blocks with 0X81 bytes. In stream mode, the 
-output should maintain 8-bit multiples. An empty input file results in an empty output file.
+The program processes the input file, treating end-of-line characters as regular data, and assumes the 
+file is in multiples of 8 bits. Output files are generated based on the mode, with block mode requiring 
+128-bit blocks and padding for blocks under this length using 0X81 bytes. Stream mode maintains 8-bit 
+multiples without specific padding requirements. An empty input file results in an empty output file.
 
 ==================== Block cipher ========================
 Encryption is a three-step process: padding (if necessary), encrypting (using XOR), and swapping. 
@@ -41,9 +40,10 @@ reached, it starts over from the beginning. The design for the Stream Cipher mod
 encryption and decryption without needing separate modules.
 
 ==================== Installation ========================
-To install, unpack the package into the intended directory. In a LINUX terminal, navigate to the 
-directory and build the program by typing "make". This prepares the program for use according to the 
-requirements.
+To install, unpack the Matthew_Mattson_PA1.tar.gz package into the intended directory. Build the program 
+in a LINUX terminal within that directory by typing "make". This prepares the program for execution according 
+to the provided requirements. A pre-determined input file (EX. input.txt) and key file (keyfile.txt) will need 
+to be created before the program is executed or the program will fail to execute.
 
 ==================== Configuration ========================
-No further configuration is needed beyond program building.
+No further configuration is needed after installation.
